@@ -1,0 +1,552 @@
+---
+title: "G4063 Final Project"
+author: "Ling Bai"
+date: "April 16, 2016"
+output: html_document
+---
+```{r}
+setwd("~/Documents/QMSS/2016 Spring/Data Visualization/Final Project/data")
+```
+
+```{r}
+#install.packages("readr")
+library(readr)
+
+#setwd("~/Documents/QMSS/2016 Spring/Data Visualization/Final Project/data/feb")
+# locate the files
+files <- list.files()
+# read the files into a list of data.frames
+feb <- lapply(files, read_csv)
+# concatenate into one big data.frame
+Feb <- do.call(rbind, feb)
+Feb <- Feb[, c(2:4,10,44,33,37,42)]
+save(Feb, file = "feb.rda")
+
+#setwd("~/Documents/QMSS/2016 Spring/Data Visualization/Final Project/data/march")
+files2 <- list.files()
+march <- lapply(files2, read_csv)
+March <- do.call(rbind, march)
+March <- March[, c(2:4,10,44,33,37,42)]
+save(March, file = "march.rda")
+
+#setwd("~/Documents/QMSS/2016 Spring/Data Visualization/Final Project/data/april")
+files3 <- list.files()
+april <- lapply(files3, read_csv)
+April <- do.call(rbind, april)
+April <- April[, c(2:4,10,44,33,37,42)]
+save(April, file = "april.rda")
+```
+
+```{r}
+# load data
+feb <- load("feb.rda")
+mar <- load("march.rda")
+apr <- load("april.rda")
+
+# convert .rda values to dataframes
+feb.df <- get(feb)
+mar.df <- get(mar)
+apr.df <- get(apr)
+```
+
+```{r}
+# subset tweets by candidates
+# for february
+hc.feb <- subset(feb.df, subset = grepl("hillary|clinton|imwithher|hillyes|giveemhill|sheswithus|hrc", text, ignore.case=TRUE))
+tc.feb <- subset(feb.df, subset = grepl("ted|cruz", text, ignore.case=TRUE))
+bs.feb <- subset(feb.df, subset = grepl("bernie|sanders|feelthebern", text, ignore.case=TRUE))
+dt.feb <- subset(feb.df, subset = grepl("donald|trump|drumpf|makeamericagreatagain", text, ignore.case=TRUE))
+# for march
+hc.mar <- subset(mar.df, subset = grepl("hillary|clinton|imwithher|hillyes|giveemhill|sheswithus|hrc", text, ignore.case=TRUE))
+tc.mar <- subset(mar.df, subset = grepl("ted|cruz", text, ignore.case=TRUE))
+bs.mar <- subset(mar.df, subset = grepl("bernie|sanders|feelthebern", text, ignore.case=TRUE))
+dt.mar <- subset(mar.df, subset = grepl("donald|trump|drumpf|makeamericagreatagain", text, ignore.case=TRUE))
+# for april
+hc.apr <- subset(apr.df, subset = grepl("hillary|clinton|imwithher|hillyes|giveemhill|sheswithus|hrc", text, ignore.case=TRUE))
+tc.apr <- subset(apr.df, subset = grepl("ted|cruz", text, ignore.case=TRUE))
+bs.apr <- subset(apr.df, subset = grepl("bernie|sanders|feelthebern", text, ignore.case=TRUE))
+dt.apr <- subset(apr.df, subset = grepl("donald|trump|drumpf|makeamericagreatagain", text, ignore.case=TRUE))
+
+# combine dataframes for each candidate
+clinton.df <- rbind(hc.feb,hc.mar, hc.apr)
+cruz.df <- rbind(tc.feb,tc.mar,hc.apr)
+sanders.df <- rbind(bs.feb,bs.mar,hc.apr)
+trump.df <- rbind(dt.feb,dt.mar,hc.apr)
+```
+
+
+```{r}
+# Divide 6 different topics for each candidate
+topics <- c("reproductive_rights", "violence_against_women",  "professional_gap", "women_of_color", "feminism", "men")
+topics_new <- list(c("(reproduct|abortion|birthcontrol|thepill|contracept
+                                   |steriliz|genitalmutilation|uterus|sexualeducation
+                                   |prochoice|prolife|plannedparenthood|standwithpp|ppfa
+                                   |roevwade|antichoice|maternalhealthcare|affordablechildcare |hobbylobby|standwithwendy|punish|defund|gender|women|female|sex|womencard)","reproductive_rights"),
+                c("(violenceagainstwomen|sexualharassment|sexualviolence
+                                      |sexualassault|sexualabuse|title9|titleIX|domesticviolence
+                                      |domesticabuse|sexslave|humantraffic|yesmeansyes|nomeansno
+                                      |consent|bringbackourgirls|survivorprivilege|rapeculture
+                                      |rapecultureiswhen|whyistayed|freemarissa|victimblaming                              |marissaalexander|redmylips|catcall|itsonus|rape|assault|gender|women|female|sex|womencard)","violence_against_women"),
+                c("(underrepresent|wom[ae]nintech|wom[ae]ninpolitics|glassceiling
+                                |wom[ae]ninstem|girlsinstem|stemgirls|stemwom[ae]n|wom[ae]ninscience
+                                |noceiling|changetheratio|wom[ae]nvote|suffrage|herstory
+                                |ask4more|leanin|wearesilent
+                                |wagegap|equalpay|equalwage
+                          |parentalleave|pregnancyleave|maternityleave|familyleave|leave|gender|women|female|sex|womencard)","professional_gap"),
+                c("(rememberrenisha|renishamcbride|youoksis|howmediawriteswoc
+                              |notyourasiansidekick|solidarityisforwhitewomen|fasttailedgirls
+                          |intersectional|wom[ae]nofcolor|race|racial|racism|divers|gender|women|female|sex|womencard)","women_of_color"),
+                c("(feminis|feminazi|askhermore|yesallwomen
+                        |allinforher|girlscount|girlsrising|girlrising|girlschange
+                        |empower|standwithwomen|fem2|femfuture|noreallythisbullshit
+                        |noreallythisisbullshit|freethefive|tothegirls|imagirl|womenshould
+                        |girlscharge|banbossy|sexis|power|right|suffrage|vote|voting|voter|empower|wecandoit|gender|women|female|sex|womencard)","feminism"),
+                c("(notallmen|yesallmen|allmen|heforshe|allmencan|misogyn|dudesgreetingdudes|gender|women|female|sex|womencard)","men"))
+
+
+output <- character(nrow(sanders.df))
+for(i in seq_along(topics_new)){
+output[grepl(x = sanders.df$text, ignore.case = TRUE, pattern = topics_new[[i]][1])] <- topics_new[[i]][2]
+} 
+sanders.df$topics <- output
+sanders.df<-sanders.df[!(is.na(sanders.df$topics) | sanders.df$topics==""), ]
+sanders.df$date <- as.Date(sanders.df$created_at, format="%a %b %d %H:%M:%S")
+sanders_day <- as.data.frame(table(sanders.df$topics,sanders.df$date))
+names(sanders_day)<- c("group","date","count")
+sanders_day <- subset(sanders_day, date!="2016-05-01")
+write.csv(sanders_day, 'sanders_day.csv', row.names = T )
+
+output <- character(nrow(clinton.df))
+for(i in seq_along(topics_new)){
+output[grepl(x = clinton.df$text, ignore.case = TRUE, pattern = topics_new[[i]][1])] <- topics_new[[i]][2]
+} 
+clinton.df$topics <- output
+clinton.df<-clinton.df[!(is.na(clinton.df$topics) | clinton.df$topics==""), ]
+clinton.df$date <- as.Date(clinton.df$created_at, format="%a %b %d %H:%M:%S")
+clinton_day <- as.data.frame(table(clinton.df$topics,clinton.df$date))
+names(clinton_day)<- c("group","date","count")
+clinton_day <- subset(clinton_day, date!="2016-05-01")
+write.csv(clinton_day, 'clinton_day.csv', row.names = T )
+
+output <- character(nrow(cruz.df))
+for(i in seq_along(topics_new)){
+output[grepl(x = cruz.df$text, ignore.case = TRUE, pattern = topics_new[[i]][1])] <- topics_new[[i]][2]
+} 
+cruz.df$topics <- output
+cruz.df<-cruz.df[!(is.na(cruz.df$topics) | cruz.df$topics==""), ]
+cruz.df$date <- as.Date(cruz.df$created_at, format="%a %b %d %H:%M:%S")
+cruz_day <- as.data.frame(table(cruz.df$topics,cruz.df$date))
+names(cruz_day)<- c("group","date","count")
+cruz_day <- subset(cruz_day, date!="2016-05-01")
+write.csv(cruz_day, 'cruz_day.csv', row.names = T )
+
+output <- character(nrow(trump.df))
+for(i in seq_along(topics_new)){
+output[grepl(x = trump.df$text, ignore.case = TRUE, pattern = topics_new[[i]][1])] <- topics_new[[i]][2]
+} 
+trump.df$topics <- output
+trump.df<-trump.df[!(is.na(trump.df$topics) | trump.df$topics==""), ]
+trump.df$date <- as.Date(trump.df$created_at, format="%a %b %d %H:%M:%S")
+trump_day <- as.data.frame(table(trump.df$topics,trump.df$date))
+names(trump_day)<- c("group","date","count")
+trump_day <- subset(trump_day, date!="2016-05-01")
+write.csv(trump_day, 'trump_day.csv', row.names = T )
+
+```
+
+## creating new csv for each candidate
+```{r}
+date <- c ("2.7", "2.8", "2.9","2.10", "2.11", "2.12", "2.13", "2.14", "2.15", "2.18", "2.19", "2.20","2.21", "2.22", "2.23", "2.24", "2.25", "2.26", "2.27", "2.28", "2.29", "3.1", "3.2","3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "3.16", "3.17", "3.18", "3.19", "3.20", "3.21","3.22", "3.23", "3.24", "3.25", "3.26", "3.27", "3.28", "3.29","3.30","3.31", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6","4.7", "4.8", "4.9", "4.10", "4.11", "4.12","4.13", "4.14", "4.15", "4.16", "4.17", "4.18", "4.19", "4.20","4.21", "4.22", "4.23", "4.24", "4.25", "4.26", "4.27", "4.28", "4.29", "4.30")
+
+
+## sander_new
+sanders_new <- as.data.frame(date)
+
+sanders_new$reproductive_rights <- subset(sanders_day$count, sanders_day$group == "reproductive_rights")
+sanders_new$violence_against_women <- subset(sanders_day$count, sanders_day$group == "violence_against_women")
+sanders_new$professional_gap <- subset(sanders_day$count, sanders_day$group == "professional_gap")
+sanders_new$women_of_color <- subset(sanders_day$count, sanders_day$group == "women_of_color")
+sanders_new$feminism <- subset(sanders_day$count, sanders_day$group == "feminism")
+sanders_new$men <- subset(sanders_day$count, sanders_day$group == "men")
+
+write.csv(sanders_new, 'sanders_new.csv', row.names = T )
+
+## clinton_new
+clinton_new <- as.data.frame(date)
+
+clinton_new$reproductive_rights <- subset(clinton_day$count, clinton_day$group == "reproductive_rights")
+clinton_new$violence_against_women <- subset(clinton_day$count, clinton_day$group == "violence_against_women")
+clinton_new$professional_gap <- subset(clinton_day$count, clinton_day$group == "professional_gap")
+clinton_new$women_of_color <- subset(clinton_day$count, clinton_day$group == "women_of_color")
+clinton_new$feminism <- subset(clinton_day$count, clinton_day$group == "feminism")
+clinton_new$men <- subset(clinton_day$count, clinton_day$group == "men")
+
+write.csv(clinton_new, 'clinton_new.csv', row.names = T )
+
+## cruz_new
+cruz_new <- as.data.frame(date)
+
+cruz_new$reproductive_rights <- subset(cruz_day$count, cruz_day$group == "reproductive_rights")
+cruz_new$violence_against_women <- subset(cruz_day$count, cruz_day$group == "violence_against_women")
+cruz_new$professional_gap <- subset(cruz_day$count, cruz_day$group == "professional_gap")
+cruz_new$women_of_color <- subset(cruz_day$count, cruz_day$group == "women_of_color")
+cruz_new$feminism <- subset(cruz_day$count, cruz_day$group == "feminism")
+cruz_new$men <- subset(cruz_day$count, cruz_day$group == "men")
+
+write.csv(cruz_new, 'cruz_new.csv', row.names = T )
+
+## trump_new
+trump_new <- as.data.frame(date)
+
+trump_new$reproductive_rights <- subset(trump_day$count, trump_day$group == "reproductive_rights")
+trump_new$violence_against_women <- subset(trump_day$count, trump_day$group == "violence_against_women")
+trump_new$professional_gap <- subset(trump_day$count, trump_day$group == "professional_gap")
+trump_new$women_of_color <- subset(trump_day$count, trump_day$group == "women_of_color")
+trump_new$feminism <- subset(trump_day$count, trump_day$group == "feminism")
+trump_new$men <- subset(trump_day$count, trump_day$group == "men")
+
+write.csv(trump_new, 'trump_new.csv', row.names = T )
+```
+
+## Subset data frame for Google map
+```{r}
+clinton_map <- clinton.df[, c(1,2,5,6,9,10)]
+clinton_map <- na.omit(clinton_map)
+write.csv(clinton_map, 'clinton_map.csv', row.names = T )
+
+sanders_map <- sanders.df[, c(1,2,5,6,9,10)]
+sanders_map <- na.omit(sanders_map)
+write.csv(sanders_map, 'sanders_map.csv', row.names = T )
+
+cruz_map <- cruz.df[, c(1,2,5,6,9,10)]
+cruz_map <- na.omit(cruz_map)
+write.csv(cruz_map, 'cruz_map.csv', row.names = T )
+
+trump_map <- trump.df[, c(1,2,5,6,9,10)]
+trump_map <- na.omit(trump_map)
+write.csv(trump_map, 'trump_map.csv', row.names = T )
+```
+
+## Twitter sentiment analysis 
+```{r}
+## subset .df to smaller data frame
+clinton_sen <- clinton.df[, c(2,6,7,10,11)]
+sanders_sen <- sanders.df[, c(2,6,7,10,11)]
+cruz_sen <- cruz.df[, c(2,6,7,10,11)]
+trump_sen <- trump.df[, c(2,6,7,10,11)]
+
+## sentiment analysis for clinton
+library(tm)
+# create a vector source, which interprets each element of its argument as a document
+v <- VectorSource(clinton_sen$text)
+# create an object of class 'corpus'; a collection of documents containing NL text
+docs <- Corpus(v)
+# convert corpus to plain text
+docs <- tm_map(docs, PlainTextDocument)
+docs <- tm_map(docs, content_transformer(function(x) iconv(x, to='ASCII', sub='byte')))
+docs <- tm_map(docs, content_transformer(function(x) tolower(x)))
+docs <- tm_map(docs, removeWords, stopwords('en'))
+# remove URLs
+stripURL = function(x) {
+  gsub("www[^[:space:]]+|htt[^[:space:]]+", "", x)
+}
+docs <- tm_map(docs, content_transformer(stripURL))
+docs <- tm_map(docs, removeNumbers)
+docs <- tm_map(docs, removePunctuation)
+docs <- tm_map(docs, stripWhitespace)
+clinton_sen$tweet <- as.character(unlist(sapply(docs, `[`, "content")))
+clinton_sen$text <- NULL
+ 
+# remove rows with duplicate tweets
+library("magrittr")
+library("dplyr")
+library("stringr")
+clinton_sen <- clinton_sen %>% 
+  group_by(topics) %>% 
+  distinct(., tweet)
+
+## word clouds for clinton
+# function to remove topic from all tweets about that topic
+removeTopic = function(topics, tweets) {
+  words <- unlist(str_split(tolower(topics), boundary("word")))
+  pattern <- paste(words,sep="",collapse = "|")
+  out <- gsub(pattern, '', tweets)
+  return(out)
+}
+ 
+# call function rowwise 
+clinton_sen <- clinton_sen %>% 
+  rowwise() %>% 
+  mutate(tweet = removeTopic(topics, tweet)) %>%
+  as.data.frame()
+ 
+library(wordcloud)
+col=brewer.pal(8, 'Set1')
+ 
+topics <- unique(clinton_sen$topics)
+ 
+lapply(1:length(topics), function(x) {
+  print(topics[x])
+  dat2cloud <- subset(clinton_sen, topics==topics[x])
+  text2cloud <- dat2cloud$tweet
+  corp <- Corpus(VectorSource(text2cloud))
+  print(wordcloud(corp, max.words=200, random.color=F, 
+        random.order=F, colors=col))
+  }
+)
+
+## Clinton sentiment analysis by topic
+lex <- read.csv('Ratings.csv', stringsAsFactors = F)
+head(lex)
+valence <- dplyr::filter(lex, V.Mean.Sum <= 4 | V.Mean.Sum >= 6)
+ 
+# by-tweet averages: for each row of the original df, take the mean of each numeric measure
+# across all words in that tweet that appear in the valence lexicon
+measures <- clinton_sen %>% 
+  rowwise() %>% 
+  do({
+    tweets <- unlist(str_split(.$tweet, boundary("word")))
+    dplyr::filter(valence, Word %in% tweets) %>%
+    summarise_each(funs(mean), which(sapply(., is.numeric))) %>%
+    as.data.frame()
+  })
+codedTweets <- bind_cols(clinton_sen, measures)
+
+## ploting day by day sentiment
+library("ggplot2")
+
+codedTweets$topics <- as.factor(codedTweets$topics)
+means <- codedTweets %>% group_by(topics) %>%
+  summarise(mean = mean(V.Mean.Sum, na.rm = T))
+print(means)
+
+ggplot(codedTweets, aes(x=V.Mean.Sum)) +
+  geom_histogram(bins=8) +
+  geom_vline(data=means, aes(xintercept=mean), col=2) +
+  facet_grid(topics ~ .)
+
+byDay <- codedTweets %>% 
+  group_by(topics, date) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)), V.Mean.Sum, V.SD.Sum)
+ 
+ggplot(byDay, aes(x=as.Date(date), y=V.Mean.Sum, color=topics)) +
+  geom_point() + geom_line()
+
+## plot on US map
+library("ggmap")
+ 
+# retain rows of data frame with geo data and valence 
+geoTweets <- dplyr::filter(codedTweets, !is.na(place_lon), 
+  !is.na(place_lat), !is.na(V.Mean.Sum))
+ 
+# For each topic, split the mean by-state tweet valence into 3 negative and 3 positive bins for plotting.
+geoTweets <- geoTweets %>% 
+  group_by(topics) %>% 
+  mutate(colorBins = cut(V.Mean.Sum, breaks=c(1,3,4,5,6,7,9), labels=F, include.lowest=T))
+plot(geoTweets$V.Mean.Sum, geoTweets$colorBins)
+
+usa <- as.numeric(geocode("United States"))
+topic <- unique(clinton_sen$topics)
+ 
+lapply(1:6, function(x) {
+  Map <- qmap("usa", zoom=4, color="bw", legend="bottomright")
+  Map + geom_point(aes(x = place_lon, y = place_lat, color=colorBins), 
+    size=4, data=dplyr::filter(geoTweets, topics==topic[x])) +
+    scale_colour_gradient(low = "black", high = "red") +
+    labs(title = topic[x])
+})
+
+```
+
+#Sanders sentiment analysis 
+```{r}
+## Sanders sentiment analysis by topic
+lex <- read.csv('Ratings.csv', stringsAsFactors = F)
+head(lex)
+valence <- dplyr::filter(lex, V.Mean.Sum <= 4 | V.Mean.Sum >= 6)
+ 
+# by-tweet averages: for each row of the original df, take the mean of each numeric measure
+# across all words in that tweet that appear in the valence lexicon
+measures <- sanders_sen %>% 
+  rowwise() %>% 
+  do({
+    tweets <- unlist(str_split(.$tweet, boundary("word")))
+    dplyr::filter(valence, Word %in% tweets) %>%
+    summarise_each(funs(mean), which(sapply(., is.numeric))) %>%
+    as.data.frame()
+  })
+codedTweets2 <- bind_cols(sanders_sen, measures)
+
+## ploting day by day sentiment
+library("ggplot2")
+
+codedTweets2$topics <- as.factor(codedTweets2$topics)
+means2 <- codedTweets2 %>% group_by(topics) %>%
+  summarise(mean = mean(V.Mean.Sum, na.rm = T))
+print(means2)
+
+ggplot(codedTweets2, aes(x=V.Mean.Sum)) +
+  geom_histogram(bins=8) +
+  geom_vline(data=means2, aes(xintercept=mean), col=2) +
+  facet_grid(topics ~ .)
+
+byDay <- codedTweets2 %>% 
+  group_by(topics, date) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)), V.Mean.Sum, V.SD.Sum)
+ 
+ggplot(byDay, aes(x=as.Date(date), y=V.Mean.Sum, color=topics)) +
+  geom_point() + geom_line()
+
+## plot on US map
+library("ggmap")
+ 
+# retain rows of data frame with geo data and valence 
+geoTweets2 <- dplyr::filter(codedTweets, !is.na(place_lon), 
+  !is.na(place_lat), !is.na(V.Mean.Sum))
+ 
+# For each topic, split the mean by-state tweet valence into 3 negative and 3 positive bins for plotting.
+geoTweets2 <- geoTweets2 %>% 
+  group_by(topics) %>% 
+  mutate(colorBins = cut(V.Mean.Sum, breaks=c(1,3,4,5,6,7,9), labels=F, include.lowest=T))
+plot(geoTweets2$V.Mean.Sum, geoTweets2$colorBins)
+
+usa <- as.numeric(geocode("United States"))
+topic <- unique(sanders_sen$topics)
+ 
+lapply(1:6, function(x) {
+  Map <- qmap("usa", zoom=4, color="bw", legend="bottomright")
+  Map + geom_point(aes(x = place_lon, y = place_lat, color=colorBins), 
+    size=4, data=dplyr::filter(geoTweets2, topics==topic[x])) +
+    scale_colour_gradient(low = "black", high = "blue") +
+    labs(title = topic[x])
+})
+```
+
+Trump sentiment analysis
+```{r}
+## Trump sentiment analysis by topic
+lex <- read.csv('Ratings.csv', stringsAsFactors = F)
+head(lex)
+valence <- dplyr::filter(lex, V.Mean.Sum <= 4 | V.Mean.Sum >= 6)
+ 
+# by-tweet averages: for each row of the original df, take the mean of each numeric measure
+# across all words in that tweet that appear in the valence lexicon
+measures <- trump_sen %>% 
+  rowwise() %>% 
+  do({
+    tweets <- unlist(str_split(.$tweet, boundary("word")))
+    dplyr::filter(valence, Word %in% tweets) %>%
+    summarise_each(funs(mean), which(sapply(., is.numeric))) %>%
+    as.data.frame()
+  })
+codedTweets3 <- bind_cols(trump_sen, measures)
+
+## ploting day by day sentiment
+library("ggplot2")
+
+codedTweets3$topics <- as.factor(codedTweets3$topics)
+means3 <- codedTweets3 %>% group_by(topics) %>%
+  summarise(mean = mean(V.Mean.Sum, na.rm = T))
+print(means3)
+
+ggplot(codedTweets3, aes(x=V.Mean.Sum)) +
+  geom_histogram(bins=8) +
+  geom_vline(data=means3, aes(xintercept=mean), col=2) +
+  facet_grid(topics ~ .)
+
+byDay <- codedTweets3 %>% 
+  group_by(topics, date) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)), V.Mean.Sum, V.SD.Sum)
+ 
+ggplot(byDay, aes(x=as.Date(date), y=V.Mean.Sum, color=topics)) +
+  geom_point() + geom_line()
+
+## plot on US map
+library("ggmap")
+ 
+# retain rows of data frame with geo data and valence 
+geoTweets3 <- dplyr::filter(codedTweets, !is.na(place_lon), 
+  !is.na(place_lat), !is.na(V.Mean.Sum))
+ 
+# For each topic, split the mean by-state tweet valence into 3 negative and 3 positive bins for plotting.
+geoTweets3 <- geoTweets3 %>% 
+  group_by(topics) %>% 
+  mutate(colorBins = cut(V.Mean.Sum, breaks=c(1,3,4,5,6,7,9), labels=F, include.lowest=T))
+plot(geoTweets3$V.Mean.Sum, geoTweets3$colorBins)
+
+usa <- as.numeric(geocode("United States"))
+topic <- unique(trump_sen$topics)
+ 
+lapply(1:6, function(x) {
+  Map <- qmap("usa", zoom=4, color="bw", legend="bottomright")
+  Map + geom_point(aes(x = place_lon, y = place_lat, color=colorBins), 
+    size=4, data=dplyr::filter(geoTweets3, topics==topic[x])) +
+    scale_colour_gradient(low = "black", high = "green") +
+    labs(title = topic[x])
+})
+```
+
+#Cruz sentiment analysis
+```{r}
+## Cruz sentiment analysis by topic
+lex <- read.csv('Ratings.csv', stringsAsFactors = F)
+head(lex)
+valence <- dplyr::filter(lex, V.Mean.Sum <= 4 | V.Mean.Sum >= 6)
+ 
+# by-tweet averages: for each row of the original df, take the mean of each numeric measure
+# across all words in that tweet that appear in the valence lexicon
+measures <- cruz_sen %>% 
+  rowwise() %>% 
+  do({
+    tweets <- unlist(str_split(.$tweet, boundary("word")))
+    dplyr::filter(valence, Word %in% tweets) %>%
+    summarise_each(funs(mean), which(sapply(., is.numeric))) %>%
+    as.data.frame()
+  })
+codedTweets4 <- bind_cols(cruz_sen, measures)
+
+## ploting day by day sentiment
+library("ggplot2")
+
+codedTweets4$topics <- as.factor(codedTweets4$topics)
+means4 <- codedTweets4 %>% group_by(topics) %>%
+  summarise(mean = mean(V.Mean.Sum, na.rm = T))
+print(means4)
+
+ggplot(codedTweets4, aes(x=V.Mean.Sum)) +
+  geom_histogram(bins=8) +
+  geom_vline(data=means4, aes(xintercept=mean), col=2) +
+  facet_grid(topics ~ .)
+
+byDay <- codedTweets4 %>% 
+  group_by(topics, date) %>% 
+  summarise_each(funs(mean(., na.rm = TRUE)), V.Mean.Sum, V.SD.Sum)
+ 
+ggplot(byDay, aes(x=as.Date(date), y=V.Mean.Sum, color=topics)) +
+  geom_point() + geom_line()
+
+## plot on US map
+library("ggmap")
+ 
+# retain rows of data frame with geo data and valence 
+geoTweets4 <- dplyr::filter(codedTweets, !is.na(place_lon), 
+  !is.na(place_lat), !is.na(V.Mean.Sum))
+ 
+# For each topic, split the mean by-state tweet valence into 3 negative and 3 positive bins for plotting.
+geoTweets4 <- geoTweets4 %>% 
+  group_by(topics) %>% 
+  mutate(colorBins = cut(V.Mean.Sum, breaks=c(1,3,4,5,6,7,9), labels=F, include.lowest=T))
+plot(geoTweets4$V.Mean.Sum, geoTweets4$colorBins)
+
+usa <- as.numeric(geocode("United States"))
+topic <- unique(cruz_sen$topics)
+ 
+lapply(1:6, function(x) {
+  Map <- qmap("usa", zoom=4, color="bw", legend="bottomright")
+  Map + geom_point(aes(x = place_lon, y = place_lat, color=colorBins), 
+    size=4, data=dplyr::filter(geoTweets4, topics==topic[x])) +
+    scale_colour_gradient(low = "black", high = "orange") +
+    labs(title = topic[x])
+})
+```
+
